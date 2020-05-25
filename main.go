@@ -99,8 +99,8 @@ You can change the message and send multiple times.
 `))
 
 type State struct {
-	Stamp   int64 `json:"t"`
-	Players []Player
+	Stamp   int64    `json:"t"`
+	Players []Player `json:"players"`
 }
 
 type Player struct {
