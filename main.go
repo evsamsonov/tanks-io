@@ -133,4 +133,5 @@ func state(w http.ResponseWriter, r *http.Request) {
 		}
 		<-ticker.C
 	}
+	ticker.Stop()
 }
