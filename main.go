@@ -113,13 +113,6 @@ type Player struct {
 	Y float64 `json:"y"`
 }
 
-var currentState = State{
-	Players: []Player{
-		{X: 0.123, Y: 20},
-		{X: 125.990, Y: 40},
-	},
-}
-
 func state(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -128,11 +121,25 @@ func state(w http.ResponseWriter, r *http.Request) {
 	}
 	defer conn.Close()
 
-	ticker := time.NewTicker(1 * time.Second)
+	// fixme пока на каждое подключение свой state
+	var currentState = State{
+		Players: []Player{
+			{X: 0.123, Y: 20},
+			{X: 125.990, Y: 40},
+		},
+	}
+
+	ticker := time.NewTicker(33 * time.Millisecond)
 	for {
+		// fixme
 		currentState.Stamp = time.Now().UnixNano() / int64(time.Millisecond)
+		for i := range currentState.Players {
+			currentState.Players[i].X++
+		}
+
 		err := conn.WriteJSON(currentState)
 		if err != nil {
+			// fixme Failed to write json: write tcp 127.0.0.1:8080->127.0.0.1:53430: write: broken pipe
 			log.Print("Failed to write json: ", err)
 			break
 		}
