@@ -2,106 +2,44 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"net/http"
-	"text/template"
-	"time"
 
-	"github.com/gorilla/websocket"
+	socketio "github.com/googollee/go-socket.io"
 )
 
 var addr = flag.String("addr", "localhost:8080", "http service address")
-
-var upgrader = websocket.Upgrader{
-	CheckOrigin: func(r *http.Request) bool {
-		// fixme Временно пока не объединим с фронтом
-		return true
-	},
-}
 
 func main() {
 	flag.Parse()
 	log.SetFlags(0)
 
-	http.HandleFunc("/", home)
-	http.HandleFunc("/state/", state)
+	server, err := socketio.NewServer(nil)
+	if err != nil {
+		log.Fatal("Failed to create socket io server", err)
+	}
+	server.OnConnect("/", func(conn socketio.Conn) error {
+		//conn.SetContext()
+		fmt.Println("connected", conn.ID())
+		return nil
+	})
+	go func() {
+		if err := server.Serve(); err != nil {
+			log.Fatal("Failed to serve socket io", err)
+		}
+	}()
+	defer func() {
+		if err := server.Close(); err != nil {
+			log.Fatal("Failed to close socket io ", err)
+		}
+	}()
+
+	http.Handle("/state/", server)
+	http.Handle("/", http.FileServer(http.Dir("./assets")))
+	log.Println("Serving at " + *addr + "...")
 	log.Fatal(http.ListenAndServe(*addr, nil))
 }
-
-func home(w http.ResponseWriter, r *http.Request) {
-	homeTemplate.Execute(w, "ws://"+r.Host+"/state/")
-}
-
-var homeTemplate = template.Must(template.New("").Parse(`
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<script>  
-window.addEventListener("load", function(evt) {
-    var output = document.getElementById("output");
-    var input = document.getElementById("input");
-    var ws;
-    var print = function(message) {
-        var d = document.createElement("div");
-        d.textContent = message;
-        output.appendChild(d);
-    };
-    document.getElementById("open").onclick = function(evt) {
-        if (ws) {
-            return false;
-        }
-        ws = new WebSocket("{{.}}");
-        ws.onopen = function(evt) {
-            print("OPEN");
-        }
-        ws.onclose = function(evt) {
-            print("CLOSE");
-            ws = null;
-        }
-        ws.onmessage = function(evt) {
-            print("RESPONSE: " + evt.data);
-        }
-        ws.onerror = function(evt) {
-            print("ERROR: " + evt.data);
-        }
-        return false;
-    };
-    document.getElementById("send").onclick = function(evt) {
-        if (!ws) {
-            return false;
-        }
-        print("SEND: " + input.value);
-        ws.send(input.value);
-        return false;
-    };
-    document.getElementById("close").onclick = function(evt) {
-        if (!ws) {
-            return false;
-        }
-        ws.close();
-        return false;
-    };
-});
-</script>
-</head>
-<body>
-<table>
-<tr><td valign="top" width="50%">
-<p>Click "Open" to create a connection to the server, 
-"Send" to send a message to the server and "Close" to close the connection. 
-You can change the message and send multiple times.
-<p>
-<form>
-<button id="open">Open</button>
-<button id="close">Close</button>
-</form>
-</td><td valign="top" width="50%">
-<div id="output"></div>
-</td></tr></table>
-</body>
-</html>
-`))
 
 type State struct {
 	Stamp   int64    `json:"t"`
@@ -111,39 +49,4 @@ type State struct {
 type Player struct {
 	X float64 `json:"x"`
 	Y float64 `json:"y"`
-}
-
-func state(w http.ResponseWriter, r *http.Request) {
-	conn, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		log.Print("Failed to upgrade: ", err)
-		return
-	}
-	defer conn.Close()
-
-	// fixme пока на каждое подключение свой state
-	var currentState = State{
-		Players: []Player{
-			{X: 0.123, Y: 20},
-			{X: 125.990, Y: 40},
-		},
-	}
-
-	ticker := time.NewTicker(33 * time.Millisecond)
-	for {
-		// fixme
-		currentState.Stamp = time.Now().UnixNano() / int64(time.Millisecond)
-		for i := range currentState.Players {
-			currentState.Players[i].X++
-		}
-
-		err := conn.WriteJSON(currentState)
-		if err != nil {
-			// fixme Failed to write json: write tcp 127.0.0.1:8080->127.0.0.1:53430: write: broken pipe
-			log.Print("Failed to write json: ", err)
-			break
-		}
-		<-ticker.C
-	}
-	ticker.Stop()
 }
