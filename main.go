@@ -19,11 +19,17 @@ func main() {
 	if err != nil {
 		log.Fatal("Failed to create socket io server", err)
 	}
+
 	server.OnConnect("/", func(conn socketio.Conn) error {
-		//conn.SetContext()
+		conn.SetContext("")
 		fmt.Println("connected", conn.ID())
+		conn.Join("main")
 		return nil
 	})
+	server.OnDisconnect("/", func(s socketio.Conn, reason string) {
+		fmt.Println("closed", s.ID(), reason)
+	})
+
 	go func() {
 		if err := server.Serve(); err != nil {
 			log.Fatal("Failed to serve socket io", err)
@@ -35,18 +41,8 @@ func main() {
 		}
 	}()
 
-	http.Handle("/state/", server)
+	http.Handle("/socket.io/", server)
 	http.Handle("/", http.FileServer(http.Dir("./assets")))
 	log.Println("Serving at " + *addr + "...")
 	log.Fatal(http.ListenAndServe(*addr, nil))
-}
-
-type State struct {
-	Stamp   int64    `json:"t"`
-	Players []Player `json:"players"`
-}
-
-type Player struct {
-	X float64 `json:"x"`
-	Y float64 `json:"y"`
 }
