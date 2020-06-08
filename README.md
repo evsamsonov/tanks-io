@@ -1,4 +1,3 @@
 # How to run
-
-- Install golang https://golang.org/doc/install
-- ```go run main.go```
+- Execute ```docker-compose up -d```
+- Check ```curl -XPOST localhost:8080``` 
