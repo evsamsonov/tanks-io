@@ -26,11 +26,11 @@ class TestScene extends Phaser.Scene
         });
 
         this.socket.on('currentPlayers', (players) => {
-            console.log(players);
+            players = JSON.parse(players);
 
-            Object.keys(players).forEach((id) => {
-                if (players[id].hasOwnProperty('playerId') && players[id].playerId === this.socket.id) {
-                    this.addPlayer(players[id]);
+            players.forEach((player) => {
+                if (player.hasOwnProperty('id') && player.id === this.socket.id) {
+                    this.addPlayer(player);
                 }
             });
         });
