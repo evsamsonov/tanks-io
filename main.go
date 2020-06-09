@@ -1,11 +1,12 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
-	"fmt"
 	"log"
 	"net/http"
 
+	"bitbucket.org/tanks-io/pkg/tanks"
 	socketio "github.com/googollee/go-socket.io"
 )
 
@@ -15,19 +16,31 @@ func main() {
 	flag.Parse()
 	log.SetFlags(0)
 
+	game := tanks.NewGame()
+
 	server, err := socketio.NewServer(nil)
 	if err != nil {
 		log.Fatal("Failed to create socket io server", err)
 	}
 
-	server.OnConnect("/", func(conn socketio.Conn) error {
-		conn.SetContext("")
-		fmt.Println("connected", conn.ID())
-		conn.Join("main")
+	server.OnConnect("/", func(s socketio.Conn) error {
+		log.Printf("Payer #%s connected", s.ID())
+		//s.SetContext("")
+
+		game.AddPlayer(s.ID())
+
+		currentPlayers, err := json.Marshal(game.Players())
+		if err != nil {
+			log.Printf("Failed to marshal players: %v", err)
+			return err
+		}
+
+		s.Emit("currentPlayers", string(currentPlayers))
 		return nil
 	})
 	server.OnDisconnect("/", func(s socketio.Conn, reason string) {
-		fmt.Println("closed", s.ID(), reason)
+		game.RemovePlayer(s.ID())
+		log.Printf("Payer #%s disconnected. Reason: %s", s.ID(), reason)
 	})
 
 	go func() {
