@@ -8,37 +8,66 @@ class TestScene extends Phaser.Scene
 
     create() {
         this.socket = io();
-
-        this.socket.on('connect', function () {
-            console.log(arguments);
-        });
-
-        this.socket.on('connect_error', function () {
-            console.log(arguments);
-        });
-
-        this.socket.on('error', function () {
-            console.log(arguments);
-        });
+        this.otherPlayers = this.physics.add.group();
 
         this.socket.on('newPlayer', (playerInfo) => {
-            console.log(playerInfo);
+            this.addOtherPlayer(JSON.parse(playerInfo));
         });
 
         this.socket.on('currentPlayers', (players) => {
             players = JSON.parse(players);
 
             players.forEach((player) => {
-                if (player.hasOwnProperty('id') && player.id === this.socket.id) {
+                if (player.id === this.socket.id) {
                     this.addPlayer(player);
+                } else {
+                    this.addOtherPlayer(player);
                 }
             });
+        });
+
+        this.socket.on('disconnect', (playerInfo) => {
+            playerInfo = JSON.parse(playerInfo);
+            let playerId = playerInfo.id;
+
+            this.otherPlayers.getChildren().forEach((otherPlayer) => {
+                if (playerId === otherPlayer.playerId) {
+                    otherPlayer.destroy();
+                }
+            });
+        });
+
+        this.socket.on('error', () => {
+            console.log(arguments);
         });
     }
 
     update() {}
 
+    createAnimations() {
+        // Пока не используется
+
+        let skins = ['lavaDark', 'lava', 'desert'];
+        let skinsCount = skins.length;
+
+        for (let i = 0; i < skinsCount; i++) {
+
+            this.anims.create({
+                key: skins[i] + '-move',
+                frames: this.anims.generateFrameNumbers('tank', { start: 1 + 5 * i, end: 4 + 5 * i }),
+                frameRate: 12,
+                repeat: -1
+            });
+        }
+    }
+
     addPlayer(playerInfo) {
-        this.tank = this.add.image(playerInfo.x, playerInfo.y, 'tank').setOrigin(0.5, 0.5);
+        this.tank = this.physics.add.sprite(playerInfo.x, playerInfo.y, 'tank', 5).setOrigin(0.5, 0.5);
+    }
+
+    addOtherPlayer(playerInfo) {
+        const otherPlayer = this.add.sprite(playerInfo.x, playerInfo.y, 'tank', 10).setOrigin(0.5, 0.5);
+        otherPlayer.playerId = playerInfo.id;
+        this.otherPlayers.add(otherPlayer);
     }
 }
