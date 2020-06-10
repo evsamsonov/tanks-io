@@ -23,23 +23,43 @@ func main() {
 		log.Fatal("Failed to create socket io server", err)
 	}
 
+	mainRoom := "main"
 	server.OnConnect("/", func(s socketio.Conn) error {
-		log.Printf("Payer #%s connected", s.ID())
-		//s.SetContext("")
+		s.Join(mainRoom)
 
-		game.AddPlayer(s.ID())
+		player := game.AddPlayer(s.ID())
+		log.Printf("Player #%s connected %+v", s.ID(), player)
 
-		currentPlayers, err := json.Marshal(game.Players())
+		currentPlayersPayload, err := json.Marshal(game.Players())
 		if err != nil {
 			log.Printf("Failed to marshal players: %v", err)
 			return err
 		}
 
-		s.Emit("currentPlayers", string(currentPlayers))
+		newPlayerPayload, err := json.Marshal(player)
+		if err != nil {
+			log.Printf("Failed to marshal players: %v", err)
+			return err
+		}
+
+		s.Emit("currentPlayers", string(currentPlayersPayload))
+		server.BroadcastToRoom("", mainRoom, "newPlayer", string(newPlayerPayload))
+
 		return nil
 	})
 	server.OnDisconnect("/", func(s socketio.Conn, reason string) {
 		game.RemovePlayer(s.ID())
+
+		disconnect := struct {
+			ID string `json:"id"`
+		}{ID: s.ID()}
+		disconnectPayload, err := json.Marshal(disconnect)
+		if err != nil {
+			log.Printf("Failed to marshal players: %v", err)
+			return
+		}
+		server.BroadcastToRoom("", mainRoom, "disconnect", string(disconnectPayload))
+
 		log.Printf("Payer #%s disconnected. Reason: %s", s.ID(), reason)
 	})
 

@@ -10,8 +10,10 @@ func NewGame() *Game {
 	}
 }
 
-func (g *Game) AddPlayer(ID string) {
-	g.players.Add(NewPlayerWithRandLoc(ID))
+func (g *Game) AddPlayer(ID string) Player {
+	player := NewPlayerWithRandLoc(ID)
+	g.players.Add(player)
+	return player
 }
 
 func (g *Game) Players() []Player {
