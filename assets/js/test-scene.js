@@ -66,6 +66,17 @@ class TestScene extends Phaser.Scene
     }
 
     addOtherPlayer(playerInfo) {
+        /**
+         * TODO Событие newPlayer рассылается всем клиентам, включая тех, кто только подключился
+         * Из-за этого танк игрока сначала рисуется в методе addPlayer (по событию currentPlayer)
+         * А затем на его место еще рисуется как будто бы танк другого игрока (по событию newPlayer)
+         * Пока добавил проверку, но по хорошему событие newPlayer должно рассылаться остальным клиентам исключая
+         * подключившегося игрока
+         */
+        if (this.socket.id === playerInfo.id) {
+            return;
+        }
+
         const otherPlayer = this.add.sprite(playerInfo.x, playerInfo.y, 'tank', 10).setOrigin(0.5, 0.5);
         otherPlayer.playerId = playerInfo.id;
         this.otherPlayers.add(otherPlayer);
