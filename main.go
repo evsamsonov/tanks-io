@@ -36,15 +36,7 @@ func main() {
 			return err
 		}
 
-		newPlayerPayload, err := json.Marshal(player)
-		if err != nil {
-			log.Printf("Failed to marshal players: %v", err)
-			return err
-		}
-
-		s.Emit("currentPlayers", string(currentPlayersPayload))
-		server.BroadcastToRoom("", mainRoom, "newPlayer", string(newPlayerPayload))
-
+		server.BroadcastToRoom("", mainRoom, "currentPlayers", string(currentPlayersPayload))
 		return nil
 	})
 	server.OnDisconnect("/", func(s socketio.Conn, reason string) {
