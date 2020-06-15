@@ -12,6 +12,6 @@ const config = {
     backgroundColor: '#bbbbbb',
     scene: [TestScene],
     title: 'Tanks',
-    version: '0.02',
+    version: '0.03',
 };
 const game = new Phaser.Game(config);

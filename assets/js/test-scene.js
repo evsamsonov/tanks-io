@@ -2,6 +2,8 @@
 
 class TestScene extends Phaser.Scene
 {
+    _otherPlayerIds = [];
+
     preload() {
         this.load.spritesheet('tank', 'img/tank.png', { frameWidth: 60, frameHeight: 60 });
     }
@@ -14,7 +16,7 @@ class TestScene extends Phaser.Scene
             players = JSON.parse(players);
 
             players.forEach((player) => {
-                if (player.id === this.socket.id) {
+                if (player.id === this.socket.id ) {
                     this.addPlayer(player);
                 } else {
                     this.addOtherPlayer(player);
@@ -25,12 +27,16 @@ class TestScene extends Phaser.Scene
         this.socket.on('disconnect', (playerInfo) => {
             playerInfo = JSON.parse(playerInfo);
             let playerId = playerInfo.id;
+            let playerIndex = this._otherPlayerIds.indexOf(playerId);
 
-            this.otherPlayers.getChildren().forEach((otherPlayer) => {
-                if (playerId === otherPlayer.playerId) {
-                    otherPlayer.destroy();
-                }
-            });
+            if (playerIndex !== -1) {
+                this.otherPlayers.getChildren().forEach((otherPlayer) => {
+                    if (playerId === otherPlayer.playerId) {
+                        otherPlayer.destroy();
+                    }
+                });
+                this._otherPlayerIds.splice(playerIndex, 1);
+            }
         });
 
         this.socket.on('error', () => {
@@ -57,12 +63,21 @@ class TestScene extends Phaser.Scene
     }
 
     addPlayer(playerInfo) {
-        this.tank = this.physics.add.sprite(playerInfo.x, playerInfo.y, 'tank', 5).setOrigin(0.5, 0.5);
+        if (undefined !== this.tank) {
+            this.tank.x = playerInfo.x;
+            this.tank.y = playerInfo.y;
+        } else {
+            this.tank = this.physics.add.sprite(playerInfo.x, playerInfo.y, 'tank', 5).setOrigin(0.5, 0.5);
+        }
     }
 
     addOtherPlayer(playerInfo) {
-        const otherPlayer = this.add.sprite(playerInfo.x, playerInfo.y, 'tank', 10).setOrigin(0.5, 0.5);
-        otherPlayer.playerId = playerInfo.id;
-        this.otherPlayers.add(otherPlayer);
+        if (!this._otherPlayerIds.includes(playerInfo.id)) {
+            const otherPlayer = this.add.sprite(playerInfo.x, playerInfo.y, 'tank', 10).setOrigin(0.5, 0.5);
+            otherPlayer.playerId = playerInfo.id;
+
+            this.otherPlayers.add(otherPlayer);
+            this._otherPlayerIds.push(playerInfo.id);
+        }
     }
 }
