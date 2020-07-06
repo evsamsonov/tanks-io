@@ -1,10 +1,13 @@
 package tanks
 
 import (
+	"errors"
 	"math/rand"
 	"sync"
 	"time"
 )
+
+var ErrNotFound = errors.New("player not found")
 
 func init() {
 	rand.Seed(time.Now().UnixNano())
@@ -26,19 +29,19 @@ func NewPlayerWithRandLoc(ID string) Player {
 
 type Players struct {
 	mu   sync.RWMutex
-	list map[string]Player
+	list map[string]*Player
 }
 
 func NewPlayers() *Players {
 	return &Players{
-		list: make(map[string]Player),
+		list: make(map[string]*Player),
 	}
 }
 
 func (p *Players) Add(player Player) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	p.list[player.ID] = player
+	p.list[player.ID] = &player
 }
 
 func (p *Players) Remove(ID string) {
@@ -55,8 +58,23 @@ func (p *Players) All() <-chan Player {
 	go func() {
 		defer close(playerStream)
 		for _, player := range p.list {
-			playerStream <- player
+			playerStream <- *player
 		}
 	}()
 	return playerStream
+}
+
+func (p *Players) SetCoordinate(ID string, x, y int) error {
+	p.mu.RLock()
+	player, ok := p.list[ID]
+	p.mu.RUnlock()
+	if !ok {
+		return ErrNotFound
+	}
+
+	p.mu.Lock()
+	player.X = x
+	player.Y = y
+	p.mu.Unlock()
+	return nil
 }

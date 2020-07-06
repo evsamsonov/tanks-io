@@ -66,7 +66,7 @@ class TestScene extends Phaser.Scene
                 }
 
                 this.tank.anims.play('lava-move', true);
-                this.socket.emit('playerMovement', { x: this.tank.x, y: this.tank.y });
+                this.socket.emit('playerMovement', JSON.stringify({ x: this.tank.x, y: this.tank.y }));
             } else {
                 this.tank.anims.play('lava-idle', true);
             }

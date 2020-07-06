@@ -27,3 +27,11 @@ func (g *Game) Players() []Player {
 func (g *Game) RemovePlayer(ID string) {
 	g.players.Remove(ID)
 }
+
+func (g *Game) MovePlayer(ID string, x, y int) error {
+	err := g.players.SetCoordinate(ID, x, y)
+	if err != nil {
+		return err
+	}
+	return nil
+}
