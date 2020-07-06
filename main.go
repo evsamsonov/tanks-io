@@ -16,7 +16,7 @@ func main() {
 	flag.Parse()
 	log.SetFlags(0)
 
-	var game = tanks.NewGame()
+	game := tanks.NewGame()
 
 	server, err := socketio.NewServer(nil)
 	if err != nil {
