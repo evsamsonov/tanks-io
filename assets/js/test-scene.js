@@ -47,32 +47,38 @@ class TestScene extends Phaser.Scene
     }
 
     update() {
-        if (this.tank) {
-            if (this.cursors.left.isDown || this.cursors.right.isDown || this.cursors.up.isDown || this.cursors.down.isDown) {
-                let tankSpeed = 2;
+        if (!this.tank) {
+            return;
+        }
 
-                if (this.cursors.left.isDown) {
-                    this.tank.x -= tankSpeed;
-                    this.tank.angle = 270;
-                } else if (this.cursors.right.isDown) {
-                    this.tank.x += tankSpeed;
-                    this.tank.angle = 90;
-                } else if (this.cursors.up.isDown) {
-                    this.tank.y -= tankSpeed;
-                    this.tank.angle = 0;
-                } else if (this.cursors.down.isDown) {
-                    this.tank.y += tankSpeed;
-                    this.tank.angle = 180;
-                }
+        if (this.cursors.left.isDown || this.cursors.right.isDown || this.cursors.up.isDown || this.cursors.down.isDown) {
+            let tankSpeed = 2;
 
-                this.tank.anims.play('lava-move', true);
-                this.socket.emit('playerMovement', JSON.stringify({ x: this.tank.x, y: this.tank.y }));
-            } else {
-                this.tank.anims.play('lava-idle', true);
+            if (this.cursors.left.isDown) {
+                this.tank.x -= tankSpeed;
+                this.tank.angle = 270;
+            } else if (this.cursors.right.isDown) {
+                this.tank.x += tankSpeed;
+                this.tank.angle = 90;
+            } else if (this.cursors.up.isDown) {
+                this.tank.y -= tankSpeed;
+                this.tank.angle = 0;
+            } else if (this.cursors.down.isDown) {
+                this.tank.y += tankSpeed;
+                this.tank.angle = 180;
             }
 
-            this.physics.world.wrap(this.tank, 5);
+            this.tank.anims.play('lava-move', true);
+            this.socket.emit('playerMovement', JSON.stringify({
+                x: this.tank.x,
+                y: this.tank.y,
+                direction: this.tank.angle / 90
+            }));
+        } else {
+            this.tank.anims.play('lava-idle', true);
         }
+
+        this.physics.world.wrap(this.tank, 5);
     }
 
     createAnimations() {
@@ -97,12 +103,17 @@ class TestScene extends Phaser.Scene
         }
     }
 
+    tankCollision() {
+        console.log('collision');
+    }
+
     addPlayer(playerInfo) {
         if (undefined !== this.tank) {
             this.tank.x = playerInfo.x;
             this.tank.y = playerInfo.y;
         } else {
             this.tank = this.physics.add.sprite(playerInfo.x, playerInfo.y, 'tank').setOrigin(0.5, 0.5);
+            this.physics.add.overlap(this.tank, this.otherPlayers, this.tankCollision, null, this);
         }
     }
 
@@ -110,9 +121,25 @@ class TestScene extends Phaser.Scene
         if (!this._otherPlayerIds.includes(playerInfo.id)) {
             const otherPlayer = this.add.sprite(playerInfo.x, playerInfo.y, 'tank', 16).setOrigin(0.5, 0.5);
             otherPlayer.playerId = playerInfo.id;
+            otherPlayer.anims.play('desert-idle', true);
 
             this.otherPlayers.add(otherPlayer);
             this._otherPlayerIds.push(playerInfo.id);
+        } else {
+            this.otherPlayers.getChildren().forEach((otherPlayer) => {
+                if (playerInfo.id === otherPlayer.playerId) {
+                    if ((otherPlayer.x !== playerInfo.x) || (otherPlayer.y !== playerInfo.y)) {
+                        otherPlayer.anims.play('desert-move', true);
+                        clearTimeout(otherPlayer.idleTimer);
+                        otherPlayer.idleTimer = setTimeout(function(otherPlayer) {
+                            otherPlayer.anims.play('desert-idle', true);
+                        }, 50, otherPlayer);
+                    }
+
+                    otherPlayer.x = playerInfo.x;
+                    otherPlayer.y = playerInfo.y;
+                }
+            });
         }
     }
 }
