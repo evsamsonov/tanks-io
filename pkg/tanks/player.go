@@ -15,8 +15,6 @@ const (
 	DownDirection  Direction = -2
 )
 
-// 0 top, 1 right, -2 down, -1 left
-
 var ErrNotFound = errors.New("player not found")
 
 type Player struct {
