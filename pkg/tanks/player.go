@@ -4,19 +4,26 @@ import (
 	"errors"
 	"math/rand"
 	"sync"
-	"time"
 )
+
+type Direction int
+
+const (
+	UpDirection    Direction = 0
+	RightDirection Direction = 1
+	LeftDirection  Direction = -1
+	DownDirection  Direction = -2
+)
+
+// 0 top, 1 right, -2 down, -1 left
 
 var ErrNotFound = errors.New("player not found")
 
-func init() {
-	rand.Seed(time.Now().UnixNano())
-}
-
 type Player struct {
-	ID string `json:"id"`
-	X  int    `json:"x"`
-	Y  int    `json:"y"`
+	ID        string    `json:"id"`
+	X         int       `json:"x"`
+	Y         int       `json:"y"`
+	Direction Direction `json:"direction"`
 }
 
 func NewPlayerWithRandLoc(ID string) Player {
@@ -64,7 +71,8 @@ func (p *Players) All() <-chan Player {
 	return playerStream
 }
 
-func (p *Players) SetCoordinate(ID string, x, y int) error {
+// fixme rename
+func (p *Players) ChangePlayer(ID string, x, y int, direction Direction) error {
 	p.mu.RLock()
 	player, ok := p.list[ID]
 	p.mu.RUnlock()
@@ -75,6 +83,7 @@ func (p *Players) SetCoordinate(ID string, x, y int) error {
 	p.mu.Lock()
 	player.X = x
 	player.Y = y
+	player.Direction = direction
 	p.mu.Unlock()
 	return nil
 }

@@ -1,10 +1,16 @@
 package tanks
 
+import (
+	"math/rand"
+	"time"
+)
+
 type Game struct {
 	players *Players
 }
 
 func NewGame() *Game {
+	rand.Seed(time.Now().UnixNano())
 	return &Game{
 		players: NewPlayers(),
 	}
@@ -28,8 +34,8 @@ func (g *Game) RemovePlayer(ID string) {
 	g.players.Remove(ID)
 }
 
-func (g *Game) MovePlayer(ID string, x, y int) error {
-	err := g.players.SetCoordinate(ID, x, y)
+func (g *Game) MovePlayer(ID string, x, y int, direction Direction) error {
+	err := g.players.ChangePlayer(ID, x, y, direction)
 	if err != nil {
 		return err
 	}

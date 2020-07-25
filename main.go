@@ -40,8 +40,9 @@ func main() {
 	})
 	server.OnEvent("/", "playerMovement", func(s socketio.Conn, msg string) {
 		payload := struct {
-			X int `json:"x"`
-			Y int `json:"y"`
+			X         int             `json:"x"`
+			Y         int             `json:"y"`
+			Direction tanks.Direction `json:"direction"`
 		}{}
 		err := json.Unmarshal([]byte(msg), &payload)
 		if err != nil {
@@ -49,7 +50,7 @@ func main() {
 			return
 		}
 
-		err = game.MovePlayer(s.ID(), payload.X, payload.Y)
+		err = game.MovePlayer(s.ID(), payload.X, payload.Y, payload.Direction)
 		if err != nil {
 			log.Printf("Failed to move player: %v, %v", err, payload)
 			return
@@ -100,6 +101,8 @@ func broadcastCurrentPlayers(game *tanks.Game, server *socketio.Server, mainRoom
 		log.Printf("Failed to marshal players: %v", err)
 		return err
 	}
+
+	log.Printf("current players = %v\n", game.Players())
 
 	server.BroadcastToRoom("/", mainRoom, "currentPlayers", string(currentPlayersPayload))
 	return nil
