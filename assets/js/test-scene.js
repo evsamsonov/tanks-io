@@ -72,13 +72,33 @@ class TestScene extends Phaser.Scene
             this.socket.emit('playerMovement', JSON.stringify({
                 x: this.tank.x,
                 y: this.tank.y,
-                direction: this.tank.angle / 90
+                direction: this.angleToDirection(this.tank.angle)
             }));
         } else {
             this.tank.anims.play('lava-idle', true);
         }
 
         this.physics.world.wrap(this.tank, 5);
+    }
+
+    angleToDirection(angle) {
+        return angle / 90;
+    }
+
+    directionToAngle(direction) {
+        if (1 === direction) {
+            return 90;
+        }
+
+        if (2 === direction || -2 === direction) {
+            return 180;
+        }
+
+        if (3 === direction || -1 === direction) {
+            return 270;
+        }
+
+        return 0;
     }
 
     createAnimations() {
@@ -138,6 +158,7 @@ class TestScene extends Phaser.Scene
 
                     otherPlayer.x = playerInfo.x;
                     otherPlayer.y = playerInfo.y;
+                    otherPlayer.angle = this.directionToAngle(playerInfo.direction);
                 }
             });
         }
