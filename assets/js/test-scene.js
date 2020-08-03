@@ -124,7 +124,7 @@ class TestScene extends Phaser.Scene
     }
 
     tankCollision() {
-        console.log('collision');
+        //console.log('collision');
     }
 
     addPlayer(playerInfo) {
